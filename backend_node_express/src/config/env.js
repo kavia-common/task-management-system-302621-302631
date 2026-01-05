@@ -65,8 +65,19 @@ function getConfig() {
 
   const supabaseUrl = getEnv('SUPABASE_URL', getEnv('NEXT_PUBLIC_SUPABASE_URL'));
 
-  // Prefer service role key env var names for backend safety.
-  const supabaseServiceRoleKey = getEnv('SUPABASE_SERVICE_ROLE_KEY') || getEnv('SUPABASE_SERVICE_KEY');
+  /**
+   * Prefer service role key env var names for backend safety.
+   *
+   * IMPORTANT:
+   * - In some Kavia/cloud preview deployments, secrets may be provided with NEXT_PUBLIC_* prefixes.
+   *   This backend intentionally supports those names as a fallback to avoid running with anon keys.
+   * - Even if the name contains NEXT_PUBLIC_, this key must still be treated as server-side only.
+   */
+  const supabaseServiceRoleKey =
+    getEnv('SUPABASE_SERVICE_ROLE_KEY') ||
+    getEnv('SUPABASE_SERVICE_KEY') ||
+    getEnv('NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY') ||
+    getEnv('NEXT_PUBLIC_SUPABASE_SERVICE_KEY');
 
   const supabaseKey =
     supabaseServiceRoleKey ||
