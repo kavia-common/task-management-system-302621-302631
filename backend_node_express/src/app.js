@@ -18,7 +18,12 @@ app.use(cookieParser());
 // Parse JSON request body
 app.use(express.json());
 
-// CORS for SPA on port 3000 (supports bearer token and optional cookies)
+// CORS for the frontend SPA (supports bearer token and optional cookies)
+//
+// IMPORTANT:
+// - Allowed origin is controlled by cfg.frontendUrl (NEXT_PUBLIC_FRONTEND_URL)
+// - For cloud previews, this must match exactly, e.g.
+//   https://vscode-internal-11829-beta.beta01.cloud.kavia.ai:3000
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -29,6 +34,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    // Ensure common SPA headers work (Authorization bearer tokens + JSON).
     allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],
     exposedHeaders: ['ETag'],
   })
