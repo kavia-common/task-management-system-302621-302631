@@ -24,12 +24,21 @@ app.use(express.json());
 // - Allowed origin is controlled by cfg.frontendUrl (NEXT_PUBLIC_FRONTEND_URL)
 // - For cloud previews, this must match exactly, e.g.
 //   https://vscode-internal-11829-beta.beta01.cloud.kavia.ai:3000
+const CLOUD_PREVIEW_FRONTEND_ORIGIN =
+  'https://vscode-internal-11829-beta.beta01.cloud.kavia.ai:3000';
+
 app.use(
   cors({
     origin: (origin, cb) => {
       // Allow non-browser requests (no Origin) and the configured frontend origin.
       if (!origin) return cb(null, true);
+
+      // Hardcoded allow-list entry for this cloud preview workspace.
+      if (origin === CLOUD_PREVIEW_FRONTEND_ORIGIN) return cb(null, true);
+
+      // Env-configured origin (still supported).
       if (origin === cfg.frontendUrl) return cb(null, true);
+
       return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
