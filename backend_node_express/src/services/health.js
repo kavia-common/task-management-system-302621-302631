@@ -1,12 +1,15 @@
+const { getConfig } = require('../config/env');
+
 class HealthService {
-    getStatus() {
-      return {
-        status: 'ok',
-        message: 'Service is healthy',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
-      };
-    }
+  getStatus() {
+    const cfg = getConfig();
+    return {
+      status: 'ok',
+      message: 'Service is healthy',
+      timestamp: new Date().toISOString(),
+      environment: cfg.nodeEnv || 'development',
+    };
   }
-  
+}
+
 module.exports = new HealthService();

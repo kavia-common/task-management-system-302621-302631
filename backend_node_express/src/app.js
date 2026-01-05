@@ -10,7 +10,13 @@ const { getConfig } = require('./config/env');
 const app = express();
 const cfg = getConfig();
 
-app.set('trust proxy', cfg.trustProxy);
+/**
+ * Trust proxy must be enabled when running behind an HTTPS-terminating proxy (cloud preview),
+ * otherwise req.secure/cookie secure behavior and origin/proto checks can be incorrect.
+ *
+ * Requirement: app.set('trust proxy', 1)
+ */
+app.set('trust proxy', cfg.trustProxy ? 1 : 0);
 
 // Parse cookies (for optional httpOnly-cookie auth)
 app.use(cookieParser());
@@ -18,34 +24,57 @@ app.use(cookieParser());
 // Parse JSON request body
 app.use(express.json());
 
-// CORS for the frontend SPA (supports bearer token and optional cookies)
-//
-// IMPORTANT:
-// - Allowed origin is controlled by cfg.frontendUrl (NEXT_PUBLIC_FRONTEND_URL)
-// - For cloud previews, this must match exactly, e.g.
-//   https://vscode-internal-11829-beta.beta01.cloud.kavia.ai:3000
+/**
+ * CORS for the frontend SPA (supports bearer token and optional cookies).
+ *
+ * Requirements:
+ * - Explicitly allow:
+ *   - https://vscode-internal-11829-beta.beta01.cloud.kavia.ai:3000
+ *   - http://localhost:3000 (and https://localhost:3000 for completeness)
+ * - Allow Authorization, Content-Type
+ * - credentials: true
+ */
 const CLOUD_PREVIEW_FRONTEND_ORIGIN =
   'https://vscode-internal-11829-beta.beta01.cloud.kavia.ai:3000';
+
+function normalizeOrigin(origin) {
+  return String(origin || '').trim().replace(/\/$/, '');
+}
+
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      CLOUD_PREVIEW_FRONTEND_ORIGIN,
+      'http://localhost:3000',
+      'https://localhost:3000',
+      cfg.frontendUrl, // env-configured origin (still supported)
+    ]
+      .filter(Boolean)
+      .map(normalizeOrigin)
+  )
+);
+
+// Expose for startup logs in server.js (do not put secrets here).
+app.locals.allowedCorsOrigins = allowedOrigins;
+app.locals.apiBase = cfg.backendUrl;
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Allow non-browser requests (no Origin) and the configured frontend origin.
+      // Allow non-browser requests (no Origin) (curl, server-to-server, etc.)
       if (!origin) return cb(null, true);
 
-      // Hardcoded allow-list entry for this cloud preview workspace.
-      if (origin === CLOUD_PREVIEW_FRONTEND_ORIGIN) return cb(null, true);
-
-      // Env-configured origin (still supported).
-      if (origin === cfg.frontendUrl) return cb(null, true);
+      const normalized = normalizeOrigin(origin);
+      if (allowedOrigins.includes(normalized)) return cb(null, true);
 
       return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     // Ensure common SPA headers work (Authorization bearer tokens + JSON).
-    allowedHeaders: ['Content-Type', 'Authorization', 'If-Match'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'If-Match'],
     exposedHeaders: ['ETag'],
+    optionsSuccessStatus: 204,
   })
 );
 

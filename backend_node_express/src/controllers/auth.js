@@ -11,7 +11,10 @@ function setAuthCookie(res, token) {
   if (!cfg.useAuthCookie) return;
 
   // For local dev over http, secure must be false.
+  // When behind a proxy with HTTPS termination, `trust proxy` ensures req.secure works,
+  // but cookie options here are env-based to remain predictable.
   const secure = cfg.nodeEnv === 'production';
+
   res.cookie(cfg.cookieName, token, {
     httpOnly: true,
     secure,
@@ -42,7 +45,7 @@ class AuthController {
       const passwordHash = await hashPassword(password);
 
       // Step 1: insert user row.
-      // If insertion succeeds but later steps fail (future expansion), rollback by deleting inserted row.
+      // If insertion succeeds but later steps fail (token generation), rollback by deleting inserted row.
       const { data: insertedUsers, error: insertError } = await supabase
         .from('users')
         .insert({ email: normalizedEmail, password_hash: passwordHash })
@@ -61,27 +64,10 @@ class AuthController {
           });
         }
 
-        // Improve common misconfiguration messaging.
         const msg = mapped?.message || 'Registration failed';
         return res.status(status).json({
           status: 'error',
           message: msg,
-        });
-      }
-<<<<<<< SEARCH
-      if (error) {
-        const mapped = mapSupabaseError(error);
-        return res.status(mapped?.status || 400).json({
-          status: 'error',
-          message: mapped?.message || 'Login failed',
-        });
-      }
-=======
-      if (error) {
-        const mapped = mapSupabaseError(error);
-        return res.status(mapped?.status || 400).json({
-          status: 'error',
-          message: mapped?.message || 'Login failed',
         });
       }
 
