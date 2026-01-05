@@ -1,8 +1,9 @@
 const express = require('express');
 const healthController = require('../controllers/health');
+const authRoutes = require('./auth');
+const taskRoutes = require('./tasks');
 
 const router = express.Router();
-// Health endpoint
 
 /**
  * @swagger
@@ -31,5 +32,8 @@ const router = express.Router();
  *                   example: development
  */
 router.get('/', healthController.check.bind(healthController));
+
+router.use('/api/auth', authRoutes);
+router.use('/api/tasks', taskRoutes);
 
 module.exports = router;
