@@ -13,7 +13,7 @@ function getSupabaseClient() {
   const cfg = getConfig();
   if (!cfg.supabaseUrl || !cfg.supabaseKey) {
     const err = new Error(
-      'Supabase is not configured. Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_KEY.'
+      'Supabase is not configured. Missing SUPABASE_URL and/or a backend key (SUPABASE_SERVICE_ROLE_KEY preferred).'
     );
     err.status = 500;
     throw err;
@@ -45,7 +45,18 @@ function mapSupabaseError(err) {
     mapped.message = message;
   }
 
-  // Some errors will come through as generic 'PGRST...' codes; keep 400 by default.
+  // This frequently indicates one of:
+  // - schema not applied/migrations not run
+  // - backend is using an anon key that lacks privileges to see tables
+  // PostgREST will behave as if the table doesn't exist for that role.
+  if (typeof message === 'string' && message.toLowerCase().includes('schema cache')) {
+    mapped.status = 500;
+    mapped.code = mapped.code || 'PGRST_SCHEMA_CACHE';
+    mapped.message =
+      'Database is not ready for auth: required tables are not visible to the configured Supabase key. ' +
+      'Ensure Supabase schema has been applied and the backend uses a service role key (SUPABASE_SERVICE_ROLE_KEY).';
+  }
+
   return mapped;
 }
 

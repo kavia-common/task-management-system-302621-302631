@@ -25,20 +25,57 @@ function getBool(name, defaultValue = false) {
 }
 
 /**
+ * Best-effort decode of a JWT payload without verifying the signature.
+ * Supabase anon/service keys are JWTs whose payload commonly includes `role`.
+ */
+function decodeJwtPayloadNoVerify(token) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length < 2) return null;
+    const payloadB64 = parts[1]
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, '=');
+
+    const json = Buffer.from(payloadB64, 'base64').toString('utf8');
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * PUBLIC_INTERFACE
  * Return the parsed environment configuration for the backend.
  */
 function getConfig() {
   /** IMPORTANT:
-   * These env vars must be provided by the environment (or .env in local dev):
-   * - NEXT_PUBLIC_SUPABASE_URL: Supabase project URL
-   * - NEXT_PUBLIC_SUPABASE_KEY: Service role key OR a key with DB write access for this backend
-   * - NEXT_PUBLIC_FRONTEND_URL: e.g. http://localhost:3000 (for CORS)
-   *   - CORS is configured to allow this origin and supports credentials for optional cookies.
-   *   - Authorization Bearer header is allowed.
-   * - JWT_SECRET: secret used to sign backend-issued JWTs (MUST be set in .env by orchestrator)
+   * Backend requires a Supabase key that can read/write app tables.
+   *
+   * Recommended env vars (backend):
+   * - SUPABASE_URL
+   * - SUPABASE_SERVICE_ROLE_KEY (preferred)
+   *   - If not provided, SUPABASE_KEY / NEXT_PUBLIC_SUPABASE_KEY is used as fallback.
+   *
+   * NOTE: Using an anon key on the backend can cause PostgREST errors like:
+   * "Could not find the table 'public.users' in the schema cache"
+   * because the anon role may not have privileges to see/modify tables.
    */
   const nodeEnv = getEnv('NEXT_PUBLIC_NODE_ENV', process.env.NODE_ENV || 'development');
+
+  const supabaseUrl = getEnv('SUPABASE_URL', getEnv('NEXT_PUBLIC_SUPABASE_URL'));
+
+  // Prefer service role key env var names for backend safety.
+  const supabaseKey =
+    getEnv('SUPABASE_SERVICE_ROLE_KEY') ||
+    getEnv('SUPABASE_SERVICE_KEY') ||
+    getEnv('SUPABASE_KEY') ||
+    getEnv('NEXT_PUBLIC_SUPABASE_KEY');
+
+  const supabaseKeyRole = (() => {
+    const payload = decodeJwtPayloadNoVerify(supabaseKey);
+    return payload && typeof payload.role === 'string' ? payload.role : null;
+  })();
 
   const config = {
     nodeEnv,
@@ -48,10 +85,10 @@ function getConfig() {
     frontendUrl: getEnv('NEXT_PUBLIC_FRONTEND_URL', 'http://localhost:3000'),
     backendUrl: getEnv('NEXT_PUBLIC_BACKEND_URL', 'http://localhost:3001'),
 
-    // Support both naming conventions: the task states SUPABASE_URL/SUPABASE_KEY,
-    // while local/dev containers may use NEXT_PUBLIC_SUPABASE_*.
-    supabaseUrl: getEnv('SUPABASE_URL', getEnv('NEXT_PUBLIC_SUPABASE_URL')),
-    supabaseKey: getEnv('SUPABASE_KEY', getEnv('NEXT_PUBLIC_SUPABASE_KEY')),
+    supabaseUrl,
+    supabaseKey,
+    // Useful for diagnostics and clearer error messages.
+    supabaseKeyRole,
 
     jwtSecret: getEnv('JWT_SECRET'),
     jwtExpiresIn: getEnv('JWT_EXPIRES_IN', '7d'),

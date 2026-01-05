@@ -54,10 +54,34 @@ class AuthController {
         const status = mapped?.status || 400;
 
         // Surface "email already exists" nicely
+        if (status === 409) {
+          return res.status(409).json({
+            status: 'error',
+            message: 'Email is already registered',
+          });
+        }
+
+        // Improve common misconfiguration messaging.
+        const msg = mapped?.message || 'Registration failed';
         return res.status(status).json({
           status: 'error',
-          message:
-            status === 409 ? 'Email is already registered' : (mapped?.message || 'Registration failed'),
+          message: msg,
+        });
+      }
+<<<<<<< SEARCH
+      if (error) {
+        const mapped = mapSupabaseError(error);
+        return res.status(mapped?.status || 400).json({
+          status: 'error',
+          message: mapped?.message || 'Login failed',
+        });
+      }
+=======
+      if (error) {
+        const mapped = mapSupabaseError(error);
+        return res.status(mapped?.status || 400).json({
+          status: 'error',
+          message: mapped?.message || 'Login failed',
         });
       }
 
