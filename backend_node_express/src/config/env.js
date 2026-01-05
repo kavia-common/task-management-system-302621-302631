@@ -34,6 +34,8 @@ function getConfig() {
    * - NEXT_PUBLIC_SUPABASE_URL: Supabase project URL
    * - NEXT_PUBLIC_SUPABASE_KEY: Service role key OR a key with DB write access for this backend
    * - NEXT_PUBLIC_FRONTEND_URL: e.g. http://localhost:3000 (for CORS)
+   *   - CORS is configured to allow this origin and supports credentials for optional cookies.
+   *   - Authorization Bearer header is allowed.
    * - JWT_SECRET: secret used to sign backend-issued JWTs (MUST be set in .env by orchestrator)
    */
   const nodeEnv = getEnv('NEXT_PUBLIC_NODE_ENV', process.env.NODE_ENV || 'development');
