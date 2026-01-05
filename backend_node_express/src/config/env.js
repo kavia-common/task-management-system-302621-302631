@@ -66,9 +66,10 @@ function getConfig() {
   const supabaseUrl = getEnv('SUPABASE_URL', getEnv('NEXT_PUBLIC_SUPABASE_URL'));
 
   // Prefer service role key env var names for backend safety.
+  const supabaseServiceRoleKey = getEnv('SUPABASE_SERVICE_ROLE_KEY') || getEnv('SUPABASE_SERVICE_KEY');
+
   const supabaseKey =
-    getEnv('SUPABASE_SERVICE_ROLE_KEY') ||
-    getEnv('SUPABASE_SERVICE_KEY') ||
+    supabaseServiceRoleKey ||
     getEnv('SUPABASE_KEY') ||
     getEnv('NEXT_PUBLIC_SUPABASE_KEY');
 
@@ -89,6 +90,8 @@ function getConfig() {
     supabaseKey,
     // Useful for diagnostics and clearer error messages.
     supabaseKeyRole,
+    // True only when configured via SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY env vars.
+    supabaseServiceRoleConfigured: Boolean(supabaseServiceRoleKey),
 
     jwtSecret: getEnv('JWT_SECRET'),
     jwtExpiresIn: getEnv('JWT_EXPIRES_IN', '7d'),

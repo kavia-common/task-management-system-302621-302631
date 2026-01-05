@@ -33,6 +33,22 @@ const router = express.Router();
  */
 router.get('/', healthController.check.bind(healthController));
 
+/**
+ * @swagger
+ * /api/health/supabase:
+ *   get:
+ *     summary: Supabase readiness check
+ *     description: |
+ *       Performs a lightweight query against Supabase to verify the backend is correctly configured.
+ *       Useful for diagnosing authentication failures due to missing schema or missing service role key.
+ *     responses:
+ *       200:
+ *         description: Supabase ready
+ *       503:
+ *         description: Supabase not ready/misconfigured (actionable error in response)
+ */
+router.get('/api/health/supabase', healthController.checkSupabase.bind(healthController));
+
 router.use('/api/auth', authRoutes);
 router.use('/api/tasks', taskRoutes);
 

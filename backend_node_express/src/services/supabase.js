@@ -16,6 +16,23 @@ function getSupabaseClient() {
       'Supabase is not configured. Missing SUPABASE_URL and/or a backend key (SUPABASE_SERVICE_ROLE_KEY preferred).'
     );
     err.status = 500;
+    err.expose = true;
+    throw err;
+  }
+
+  /**
+   * Backend must not run with an anon key. If it does, PostgREST often behaves as if tables
+   * "do not exist" (schema cache / permission masking), causing auth/tasks to fail.
+   *
+   * We fail fast with a clear, actionable message.
+   */
+  if (!cfg.supabaseServiceRoleConfigured && String(cfg.supabaseKeyRole || '').toLowerCase() === 'anon') {
+    const err = new Error(
+      'Backend Supabase key is an anon key. Configure SUPABASE_SERVICE_ROLE_KEY on the backend (server-side only) ' +
+        'and apply the schema in assets/supabase_schema.sql in your Supabase project.'
+    );
+    err.status = 500;
+    err.expose = true;
     throw err;
   }
 

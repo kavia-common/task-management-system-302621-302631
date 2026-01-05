@@ -130,9 +130,19 @@ app.use((err, req, res, next) => {
 
   const status = err.status && Number.isInteger(err.status) ? err.status : 500;
 
-  // Avoid leaking internal details in production; keep message for dev.
+  /**
+   * Avoid leaking internal details in production.
+   *
+   * However, some 500s are *actionable configuration errors* (e.g. missing Supabase service role key).
+   * Those errors should be safe to expose to clients, so we support `err.expose = true`.
+   */
+  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+  const shouldExpose500Message = !isProd || err?.expose === true;
+
   const message =
-    status === 500 ? 'Internal Server Error' : (err.message || 'Request failed');
+    status === 500
+      ? (shouldExpose500Message ? (err.message || 'Internal Server Error') : 'Internal Server Error')
+      : (err.message || 'Request failed');
 
   if (status >= 500) {
     console.error(err.stack || err);
