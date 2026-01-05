@@ -49,6 +49,11 @@ app.use(
   })
 );
 
+app.get('/openapi.json', (req, res) => {
+  // Serve the generated OpenAPI spec as JSON (used by cloud preview metadata and tooling).
+  res.json(swaggerSpec);
+});
+
 app.use('/docs', swaggerUi.serve, (req, res, next) => {
   const host = req.get('host'); // may or may not include port
   let protocol = req.protocol; // http or https

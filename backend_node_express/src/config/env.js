@@ -48,8 +48,10 @@ function getConfig() {
     frontendUrl: getEnv('NEXT_PUBLIC_FRONTEND_URL', 'http://localhost:3000'),
     backendUrl: getEnv('NEXT_PUBLIC_BACKEND_URL', 'http://localhost:3001'),
 
-    supabaseUrl: getEnv('NEXT_PUBLIC_SUPABASE_URL'),
-    supabaseKey: getEnv('NEXT_PUBLIC_SUPABASE_KEY'),
+    // Support both naming conventions: the task states SUPABASE_URL/SUPABASE_KEY,
+    // while local/dev containers may use NEXT_PUBLIC_SUPABASE_*.
+    supabaseUrl: getEnv('SUPABASE_URL', getEnv('NEXT_PUBLIC_SUPABASE_URL')),
+    supabaseKey: getEnv('SUPABASE_KEY', getEnv('NEXT_PUBLIC_SUPABASE_KEY')),
 
     jwtSecret: getEnv('JWT_SECRET'),
     jwtExpiresIn: getEnv('JWT_EXPIRES_IN', '7d'),
